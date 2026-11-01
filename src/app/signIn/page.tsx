@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { authClient } from "../lib/auth-client";
 
 const GoogleIcon = () => (
   <svg className="size-4" viewBox="0 0 48 48" aria-hidden="true">
@@ -31,7 +32,21 @@ export default function SignInPage() {
   const inputClass =
     "w-full rounded-lg border border-neutral-200 bg-white py-3 pl-11 pr-4 text-sm text-neutral-800 placeholder-neutral-400 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-500/15";
 
-  return (
+  const onSubmit = async(e: React.SubmitEvent<HTMLElement>)=>{
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const user = Object.fromEntries(formData.entries())as {email: string, password:string};
+   
+  const {data, error} = await authClient.signIn.email({
+    ...user,
+    callbackURL:"/"
+   })
+ 
+  }
+  
+  
+    return (
     <main className="flex flex-1 justify-center bg-[#fafafa] px-5 py-10 sm:px-8">
       <div className="w-full max-w-md">
         {/* Top link */}
@@ -87,6 +102,8 @@ export default function SignInPage() {
           <span className="h-px flex-1 bg-neutral-200" />
         </div>
 
+
+<form onSubmit={onSubmit}>
         {/* Email */}
         <div>
           <label htmlFor="email" className="mb-2 block text-sm font-semibold text-neutral-800">
@@ -109,7 +126,8 @@ export default function SignInPage() {
             <input
               id="email"
               type="email"
-              placeholder="director@studiospace.com"
+              name="email"
+              placeholder="example@gmail.com"
               className={inputClass}
             />
           </div>
@@ -141,8 +159,9 @@ export default function SignInPage() {
             </svg>
             <input
               id="password"
+              name="password"
               type={showPassword ? "text" : "password"}
-              defaultValue="supers3cretadmin"
+              defaultValue="Enter your password"
               className={inputClass}
             />
             <button
@@ -188,11 +207,12 @@ export default function SignInPage() {
 
         {/* Submit */}
         <button
-          type="button"
+          type="submit"
           className="mt-7 w-full rounded-lg bg-orange-500 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600"
         >
           Log in to StudioSpace →
         </button>
+        </form>
       </div>
     </main>
   );

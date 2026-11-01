@@ -1,9 +1,10 @@
 import Link from "next/link";
+import Userinfo from "./Userinfo";
 
 const Navbar = () => {
   return (
     <div className="sticky top-0 z-50 bg-[#09090f]">
-      <div className="container mx-auto flex justify-between p-5">
+      <div className="container mx-auto flex justify-between p-5 items-center">
 
         <div className="text-3xl font-bold">
           <Link href="/">StudioSpace</Link>
@@ -25,19 +26,9 @@ const Navbar = () => {
           </Link>
         </div>
 
-        <div className="flex gap-5">
+        <div >
         
-          <Link href="/signUp">
-            <button className="btn btn-soft btn-primary">
-              Sign-Up
-            </button>
-          </Link>
-
-          <Link href="/signIn">
-            <button className="btn btn-soft btn-secondary">
-              Sign-In
-            </button>
-          </Link>
+          <Userinfo></Userinfo>
        
         </div>
 

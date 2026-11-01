@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { authClient } from "../lib/auth-client";
+import { redirect } from "next/navigation";
 
 const GoogleIcon = () => (
   <svg className="size-4" viewBox="0 0 48 48" aria-hidden="true">
@@ -27,26 +29,23 @@ const GoogleIcon = () => (
 export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
-  const [agreed, setAgreed] = useState(false);
+  
+  const onSubmit = async(e: React.SubmitEvent<HTMLElement>)=>{
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const user = Object.fromEntries(formData.entries()) as {name:string, email:string, password:string};
 
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const minLength = Math.min(password.length, 6);
+    const { data, error } = await authClient.signUp.email({
+        ...user, // User image URL (optional)
+        callbackURL: "/" // A URL to redirect to after the user verifies their email (optional)
+    });
 
-  const rules = [
-    {
-      label: "At least one uppercase letter (A-Z)",
-      met: hasUppercase,
-    },
-    {
-      label: "At least one lowercase letter (a-z)",
-      met: hasLowercase,
-    },
-    {
-      label: `At least minimum 6 characters (currently ${minLength}/6)`,
-      met: password.length >= 6,
-    },
-  ];
+    if(data){
+      redirect("/")
+    } 
+
+  }
+
 
   const inputClass =
     "w-full rounded-lg border border-white/10 bg-white/[0.04] py-3 pl-4 pr-12 text-sm text-white placeholder-white/30 outline-none transition focus:border-amber-400/60 focus:bg-white/[0.06]";
@@ -62,7 +61,7 @@ export default function SignUpPage() {
           Start booking certified soundstages or list your creative space.
         </p>
 
-
+      <form onSubmit={onSubmit}>
 
         {/* Full Name */}
         <div className="mt-7">
@@ -76,7 +75,7 @@ export default function SignUpPage() {
             <input
               id="name"
               type="text"
-              
+              name="name"
               placeholder="Your name"
               className={inputClass}
             />
@@ -98,7 +97,7 @@ export default function SignUpPage() {
             <input
               id="email"
               type="email"
-
+              name="email"
               placeholder="example@gmail.com"
               className={inputClass}
             />
@@ -123,6 +122,7 @@ export default function SignUpPage() {
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
+              name="password"
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               className={inputClass}
@@ -155,12 +155,9 @@ export default function SignUpPage() {
           </div>
         </div>
 
-
-
-
         {/* Submit */}
         <button
-          type="button"
+          type="submit"
           className="mt-7 w-full rounded-xl bg-amber-400 py-3.5 text-sm font-bold text-black transition hover:bg-amber-300"
         >
           Create Production Account →
@@ -183,6 +180,7 @@ export default function SignUpPage() {
           <GoogleIcon />
           Continue with Google
         </button>
+        </form>
 
         {/* Footer links */}
         <p className="mt-8 text-center text-xs text-neutral-400">
