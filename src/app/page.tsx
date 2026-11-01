@@ -1,8 +1,11 @@
+import AboutSection from "./component/aboutUs";
+import Hero from "./component/hero";
 
 export default function Home() {
   return (
-    <div>
-
-    </div>
+    <main>
+      <Hero />
+      <AboutSection />
+    </main>
   );
 }
