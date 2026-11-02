@@ -1,5 +1,12 @@
+"use client"
 import Link from "next/link";
-
+import { ArrowRight, Mail } from "lucide-react";
+import {
+  FaInstagram,
+  FaFacebook,
+  FaLinkedin,
+  FaXTwitter,
+} from "react-icons/fa6";
 const cities = ["Paris", "New York", "London", "Tokyo"];
 
 const columns = [
@@ -13,61 +20,85 @@ const columns = [
     ],
   },
   {
-    title: "Hosts",
+    title: "For Hosts",
     links: [
-      { label: "List Your Studio", href: "/#" },
-      { label: "Host Guidelines", href: "/#" },
-      { label: "Studio Insurance", href: "/#" },
-      { label: "Pricing Calculator", href: "/#" },
+      { label: "List Your Studio", href: "/add-studio" },
+      { label: "Host Guidelines", href: "/host-guidelines" },
+      { label: "Studio Insurance", href: "/studio-insurance" },
+      { label: "Pricing Calculator", href: "/pricing" },
     ],
   },
   {
     title: "Company",
     links: [
       { label: "About StudioSpace", href: "/#aboutUs" },
-      { label: "Press & Editorial", href: "/#" },
-      { label: "Support Concierge", href: "/#" },
-      { label: "Terms & Privacy", href: "/#" },
+      { label: "Press & Editorial", href: "/press" },
+      { label: "Support Concierge", href: "/support" },
+      { label: "Contact Us", href: "/contact" },
     ],
   },
 ];
 
-const legalLinks = ["Privacy Policy", "Terms of Service", "Trust & Safety"];
+const legalLinks = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Trust & Safety", href: "/trust-safety" },
+];
 
 const Footer = () => {
   return (
-    <footer className="border-t border-black/10 bg-[#faf9f6] px-6 py-12 text-[#1c1c1c] sm:px-8 lg:px-16">
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
-          {/* BRAND */}
-          <div>
-            <h3 className="text-center text-xl font-semibold">StudioSpace</h3>
+    <footer className="border-t border-black/10 bg-[#faf9f6] px-6 pt-16 pb-8 text-[#1c1c1c] sm:px-8 lg:px-16">
+      <div className="mx-auto max-w-7xl">
 
-            <p className="mt-4 text-sm leading-relaxed text-neutral-600">
-              Curated architectural, production, and daylight studios tailored
-              for visionary creators, photographers, and directors worldwide.
+        {/* MAIN FOOTER */}
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+
+          {/* BRAND SECTION */}
+          <div>
+            <Link href="/" className="inline-block">
+              <h2 className="text-2xl font-bold tracking-tight">
+                Studio<span className="text-neutral-500">Space.</span>
+              </h2>
+            </Link>
+
+            <p className="mt-5 max-w-xs text-sm leading-7 text-neutral-600">
+              Discover extraordinary creative spaces designed to inspire.
+              From daylight studios to cinematic production stages, find
+              the perfect space to bring your vision to life.
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-5 text-[11px] font-bold tracking-wider">
-              {cities.map((city) => (
-                <span key={city} className="uppercase">
-                  {city}
-                </span>
-              ))}
+            {/* CITIES */}
+            <div className="mt-7">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+                Available Worldwide
+              </p>
+
+              <div className="flex flex-wrap gap-x-5 gap-y-3">
+                {cities.map((city) => (
+                  <span
+                    key={city}
+                    className="text-[11px] font-semibold uppercase tracking-wider text-neutral-600"
+                  >
+                    {city}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* LINK COLUMNS */}
+          {/* NAVIGATION COLUMNS */}
           {columns.map((column) => (
             <div key={column.title}>
-              <h4 className="text-lg font-semibold">{column.title}</h4>
+              <h4 className="mb-6 text-sm font-bold">
+                {column.title}
+              </h4>
 
-              <ul className="mt-4 space-y-2.5">
+              <ul className="space-y-4">
                 {column.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-neutral-600 transition hover:text-black"
+                      className="text-sm text-neutral-500 transition hover:text-black"
                     >
                       {link.label}
                     </Link>
@@ -78,22 +109,127 @@ const Footer = () => {
           ))}
         </div>
 
-        {/* BOTTOM BAR */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 text-xs text-neutral-700 sm:flex-row">
-          <p>© 2025 StudioSpace Inc. Editorial spaces for extraordinary productions.</p>
+        {/* NEWSLETTER SECTION */}
+        <div className="mt-16 border-y border-black/10 py-10">
+          <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
 
-          <div className="flex flex-wrap justify-center gap-8">
-            {legalLinks.map((label) => (
-              <Link
-                key={label}
-                href="/#"
-                className="transition hover:text-black"
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+                Stay Inspired
+              </p>
+
+              <h3 className="mt-3 text-2xl font-semibold tracking-tight">
+                Creative spaces. Fresh inspiration.
+              </h3>
+
+              <p className="mt-2 text-sm text-neutral-500">
+                Get studio discoveries and creative inspiration in your inbox.
+              </p>
+            </div>
+
+            {/* NEWSLETTER INPUT */}
+            <form
+              className="flex w-full max-w-md items-center gap-2 rounded-full border border-black/15 bg-white p-1.5"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              <Mail size={18} className="ml-3 shrink-0 text-neutral-400" />
+
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                required
+                className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-neutral-400"
+              />
+
+              <button
+                type="submit"
+                className="flex shrink-0 items-center gap-2 rounded-full bg-black px-5 py-3 text-xs font-semibold text-white transition hover:bg-neutral-700"
               >
-                {label}
+                Subscribe
+                <ArrowRight size={14} />
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* BOTTOM FOOTER */}
+        <div className="flex flex-col justify-between gap-7 pt-8 md:flex-row md:items-center">
+
+          {/* COPYRIGHT */}
+          <div>
+            <p className="text-xs font-medium text-neutral-600">
+              © 2026 StudioSpace Inc.
+            </p>
+
+            <p className="mt-1 text-[11px] text-neutral-400">
+              Editorial spaces for extraordinary productions.
+            </p>
+          </div>
+
+          {/* LEGAL LINKS */}
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
+            {legalLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="text-xs text-neutral-500 transition hover:text-black"
+              >
+                {link.label}
               </Link>
             ))}
           </div>
+
+          {/* SOCIAL LINKS */}
+          <div className="flex items-center gap-4">
+
+            <a
+              href="https://x.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="X"
+              className="text-neutral-500 transition hover:text-black"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-[17px] w-[17px] fill-current"
+                aria-hidden="true"
+              >
+                <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.4l7.3-8.4L1.9 2h6.5l4.5 6.9L18.9 2Zm-1.1 18h1.7L7.4 3.9H5.6L17.8 20Z" />
+              </svg>
+            </a>
+
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="text-neutral-500 transition hover:text-black"
+            >
+              <FaInstagram size={17} />
+            </a>
+
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              className="text-neutral-500 transition hover:text-black"
+            >
+              <FaFacebook size={17} />
+            </a>
+
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              className="text-neutral-500 transition hover:text-black"
+            >
+              <FaLinkedin size={17} />
+            </a>
+          </div>
         </div>
+
       </div>
     </footer>
   );

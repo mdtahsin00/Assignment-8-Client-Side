@@ -26,14 +26,32 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const validatePassword = (value: string): string | null => {
+  const missing: string[] = [];
+  if (!/[A-Z]/.test(value)) missing.push("an uppercase letter");
+  if (!/[a-z]/.test(value)) missing.push("a lowercase letter");
+  if (value.length < 6) missing.push("a minimum of 6 characters");
+
+  if (missing.length === 0) return null;
+  return `Password must include ${missing.join(" and ")}.`;
+};
+
 export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
-  
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   const onSubmit = async(e: React.SubmitEvent<HTMLElement>)=>{
     e.preventDefault();
     const formData = new FormData(e.target);
     const user = Object.fromEntries(formData.entries()) as {name:string, email:string, password:string};
+
+    const validationError = validatePassword(user.password);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+    setPasswordError(null);
 
     const { data, error } = await authClient.signUp.email({
         ...user, // User image URL (optional)
@@ -113,8 +131,16 @@ export default function SignUpPage() {
             <label htmlFor="password" className="text-xs text-neutral-400">
               Master Password
             </label>
-            <span className="text-[11px] font-medium text-amber-400">
-              Requirement Pending
+            <span
+              className={`text-[11px] font-medium ${
+                validatePassword(password) === null
+                  ? "text-green-400"
+                  : "text-amber-400"
+              }`}
+            >
+              {validatePassword(password) === null
+                ? "Requirements met"
+                : "Requirement Pending"}
             </span>
           </div>
           <div className="relative">
@@ -123,9 +149,19 @@ export default function SignUpPage() {
               type={showPassword ? "text" : "password"}
               value={password}
               name="password"
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setPassword(value);
+                // Keep the error in sync while the user fixes it after submitting
+                setPasswordError((prev) => (prev ? validatePassword(value) : prev));
+              }}
               placeholder="Enter password"
-              className={inputClass}
+              aria-invalid={passwordError ? true : undefined}
+              className={`${inputClass}${
+                passwordError
+                  ? " border-red-500/60 focus:border-red-400/70"
+                  : ""
+              }`}
             />
             <button
               type="button"
@@ -153,6 +189,11 @@ export default function SignUpPage() {
               </svg>
             </button>
           </div>
+          {passwordError && (
+            <p role="alert" className="mt-2 text-xs font-medium text-red-400">
+              {passwordError}
+            </p>
+          )}
         </div>
 
         {/* Submit */}
