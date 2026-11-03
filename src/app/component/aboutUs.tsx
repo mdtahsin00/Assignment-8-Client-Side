@@ -150,13 +150,13 @@ export default function AboutSection() {
               and turn your next big idea into reality.
             </p>
 
-            <a
+            <Link
               href="/studios"
               className="mt-8 inline-flex items-center gap-3 rounded-xl bg-white px-7 py-4 text-sm font-bold text-black transition hover:-translate-y-1 hover:bg-violet-200"
             >
               Explore Studios
               <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </div>
         </div>
 

@@ -1,19 +1,20 @@
 
 import { Suspense } from "react";
 import StudioCard from "@/app/component/StudioCard";
+import { studiosCollection } from "@/app/lib/mongodb";
 import type { IStudio } from "@/app/types/studio";
 
 // Fetch and display studios
 const StudiosList = async () => {
-  const res = await fetch("http://localhost:5000/allStudio", {
-    cache: "no-store",
-  });
+  const docs = await studiosCollection
+    .find()
+    .sort({ createdAt: -1 })
+    .toArray();
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch studios");
-  }
-
-  const studios: IStudio[] = await res.json();
+  const studios = docs.map((doc) => ({
+    ...doc,
+    _id: doc._id.toString(),
+  })) as unknown as IStudio[];
 
   if (studios.length === 0) {
     return (

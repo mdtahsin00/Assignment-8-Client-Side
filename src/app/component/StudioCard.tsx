@@ -10,7 +10,6 @@ interface StudioCardProps {
 const StudioCard = ({ studio }: StudioCardProps) => {
   return (
     <div className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111827] transition-all duration-300 hover:-translate-y-2">
-
       <div className="relative h-56">
         <Image
           src={studio.imageUrl}
@@ -31,9 +30,7 @@ const StudioCard = ({ studio }: StudioCardProps) => {
       </div>
 
       <div className="p-5">
-        <h2 className="text-xl font-bold text-white">
-          {studio.title}
-        </h2>
+        <h2 className="text-xl font-bold text-white">{studio.title}</h2>
 
         <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
           <MapPin size={16} />
@@ -54,10 +51,9 @@ const StudioCard = ({ studio }: StudioCardProps) => {
 
           <Link
             href={`/studios/${studio._id}`}
-            className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-500"
+            className="rounded-xl bg-violet-600 px-5 py-3 text-white"
           >
             View Details
-            <ArrowUpRight size={16} />
           </Link>
         </div>
       </div>

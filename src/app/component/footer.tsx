@@ -9,6 +9,15 @@ import {
 } from "react-icons/fa6";
 const cities = ["Paris", "New York", "London", "Tokyo"];
 
+const categories = [
+  "Photography",
+  "Podcasting",
+  "Music Production",
+  "Film & Cinema",
+  "Art & Design",
+  "Content Creation",
+];
+
 const columns = [
   {
     title: "Explore",
@@ -81,6 +90,25 @@ const Footer = () => {
                   >
                     {city}
                   </span>
+                ))}
+              </div>
+            </div>
+
+            {/* POPULAR CATEGORIES */}
+            <div className="mt-7">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+                Popular Categories
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Link
+                    key={category}
+                    href="/exploreStudios"
+                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-[11px] font-medium text-neutral-600 transition hover:border-black/30 hover:text-black"
+                  >
+                    {category}
+                  </Link>
                 ))}
               </div>
             </div>
@@ -189,13 +217,7 @@ const Footer = () => {
               aria-label="X"
               className="text-neutral-500 transition hover:text-black"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-[17px] w-[17px] fill-current"
-                aria-hidden="true"
-              >
-                <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.4l7.3-8.4L1.9 2h6.5l4.5 6.9L18.9 2Zm-1.1 18h1.7L7.4 3.9H5.6L17.8 20Z" />
-              </svg>
+              <FaXTwitter size={17} />
             </a>
 
             <a

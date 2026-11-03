@@ -68,7 +68,7 @@ export default function AddStudioPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("http://localhost:5000/add-studio", {
+      const res = await fetch("/api/studios", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,16 +79,14 @@ export default function AddStudioPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to add studio");
+        throw new Error(data.error || data.message || "Failed to add studio");
       }
-
-      console.log(data);
 
       setToast({
         type: "success",
         message: "Studio listed! Redirecting to your listings…",
       });
-      setTimeout(() => router.push("/add-studio"), 5000);
+      setTimeout(() => router.push("/my-listings"), 2000);
     } catch (error) {
       setSubmitting(false);
       const message =
