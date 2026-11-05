@@ -1,52 +1,37 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# StudioSpace client
 
-## This is NOT the Next.js you know
+Next.js 15 (App Router) frontend for a studio-rental marketplace. Not a monorepo: the Express + MongoDB API is a **separate project at `../studiospace-server`** (own `package.json`, own `.env`). Start it first — this client only proxies to it.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+## Commands
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+- `npm run dev` — Next dev on http://localhost:3000.
+- `npx tsc --noEmit` — the only verification step. There is no lint, test, or typecheck script, and no ESLint installed. `strict: true`.
+- `npm run build` — **fails until `.env.local` exists** (see below); passes once env is populated.
+- `npm run seed` does not exist here despite the README implying it — seeding is `npm run seed` inside `../studiospace-server`.
 
-<!-- END:nextjs-agent-rules -->
+## Setup gotcha
 
-## Commands (run from this directory)
+`.env.local` is gitignored and absent on a fresh clone: copy `.env.example` → `.env.local` first. Without it `npm run build` crashes while collecting page data for `/api/token`, because `src/lib/auth.ts` constructs the `MongoClient` at module load and JWT signing needs `JWT_SECRET`. The same env is required at runtime for all auth/API routes.
 
-- `npm run dev` — dev server at http://localhost:3000 (`next dev`)
-- `npm run build` — production build; also runs the TypeScript check
-- `npm run start` — production server; requires `npm run build` first
-- `npm run lint` — ESLint flat config (`eslint-config-next`: core-web-vitals + TS). Currently passes with warnings (unused vars, `<img>`), 0 errors
-- `npx tsc --noEmit` — standalone typecheck (no npm script for it)
+- `JWT_SECRET` must be byte-identical to the server's, or every API call returns 401.
+- `DB_NAME=StudioSpace` — case-sensitive and **must match the existing DB on the Atlas cluster**. The lowercase value in older configs (`studiospace`) is rejected with Mongo error 13297 (`db already exists with different case`), which surfaces only at first signup as Better Auth `FAILED_TO_CREATE_USER` (HTTP 422) — pages load fine, so it's easy to misdiagnose as a form bug.
+- `API_URL` (default `http://localhost:5000`) is read by `next.config.ts` at startup — restart the dev server after changing it. Env files are only read at server start, so any `.env.local` change needs a restart.
 
-No test runner or `npm test` is configured — do not add test commands without first verifying available tooling. There is no formatter, no CI, and no pre-commit hooks; `lint` + `tsc` + `build` is the whole verification loop.
+## How requests actually flow
 
-## Architecture
+- The browser never calls Express directly: `src/lib/api.ts` fetches `/server-api/...`, and `next.config.ts` rewrites that to `${API_URL}/api/...`. This keeps the HTTPOnly `ss_token` cookie same-origin. **All new API calls must go through `api()` / `useApi()` — never a hardcoded `http://localhost:5000`.**
+- Two auth layers: a Better Auth session inside Next (`src/lib/auth.ts` + catch-all `src/app/api/auth/[...all]/route.ts`), and a 7-day JWT minted by `POST /api/token` into the `ss_token` cookie for Express. `src/app/providers.tsx` re-mints it on every session load and only then sets `ready`; `PrivateRoute` gates on that flag so private pages don't 401 or bounce to `/login` on reload. Preserve that ordering when touching auth.
+- Post-login redirects use the `?next=` query param (login page, `PrivateRoute`, and Google `callbackURL`).
 
-- Single Next.js 16 App Router app. All data flows through Next.js API routes + direct reads of MongoDB (`frontend-user-data`) — the repo does **not** call any external service.
-- Routes (`src/app/`): `/` (hero + about section), `signIn`, `signUp`, `exploreStudios`, `add-studio`, `my-listings`, `my-bookings`, `studios/[id]`; API: `/api/auth/[...all]` (better-auth), `/api/studios` (CRUD for listings), `/api/bookings` (create/list bookings).
-- Shared components live in `src/app/component/` — singular **"component"**, not `components/` (navbar, footer, hero, aboutUs, Userinfo, StudioCard, StudioDetails).
-- `src/app/lib/`: `auth.ts` (better-auth server + Mongo adapter), `auth-client.ts` (better-auth/react), `mongodb.ts` (db `frontend-user-data`, exports `studiosCollection` + `bookingsCollection`), `studio.ts` (validation + category/amenity constants), `booking.ts` (booking types + validation).
-- Server components (`exploreStudios`, `studios/[id]`) query `studiosCollection` directly — no HTTP hop. Client components go through `/api/*` route handlers. Both paths hit the same DB.
-- Path alias `@/*` → `./src/*`. `src/` is `.ts`/`.tsx` only.
-- Styling: Tailwind CSS v4 + daisyUI; entry is `src/app/globals.css` (`@import "tailwindcss"`, `@plugin "daisyui"`). `next.config.ts` enables `cacheComponents`, `partialPrefetching`, `reactCompiler`, wires `@tailwindcss/turbopack` for `*.css`, and allows remote images only from `images.unsplash.com` and `i.pinimg.com`.
+## Conventions
 
-## Legacy Express server (unused)
+- Path alias `@/*` → `src/*`. npm only (`package-lock.json`).
+- Pages are client components that fetch via `useApi<T>(path)` (`src/lib/use-api.ts`). No server-side data fetching, codegen, or migrations.
+- Tailwind **v4 via PostCSS** — no `tailwind.config`. Theme tokens and shared classes (`.wrap`, `.btn`, `.input`, `.card`, `.badge`) live in `src/app/globals.css` (`@theme inline`, `@layer components`); reuse them instead of re-rolling utilities. Dark mode: `next-themes` `class` strategy + `@custom-variant dark`.
+- Images use plain `<img>` (remote imgbb/Mongo URLs; `next/image` remote patterns are not configured) — match that.
+- Domain constants (categories, amenities, booking-status badge styles) are in `src/lib/constants.ts`; API response types in `src/lib/types.ts`.
+- `NEXT_PUBLIC_IMGBB_KEY` is optional; without it `StudioForm` tells users to paste an image URL instead of uploading.
 
-- `../../Server/index.js` (port 5000, db `StudioSpace`) was the original backend. The app no longer calls it — do not add `localhost:5000` fetches back. It can be shut down; its data was migrated into `frontend-user-data.studios` (12 docs, owned by the single seeded user).
+## Repo quirk
 
-## Auth
-
-- better-auth (email+password, MongoDB adapter). Server: `auth.api.getSession({ headers: await headers() })`; client: `authClient` from `src/app/lib/auth-client.ts` (`useSession()`, `signIn.email`, `signUp.email`, `signOut`).
-- No middleware — private pages (`add-studio`, `my-listings`, `my-bookings`) guard client-side with `useEffect` + `router.replace("/signIn")`; API routes check the session themselves and return 401.
-- Booking ownership/pricing is decided server-side: `/api/bookings` takes `userId`/`userName`/price from the session + DB, never from the client payload.
-- Route `params`/`searchParams` are Promises: `await params` (see `studios/[id]/page.tsx`).
-
-## Environment
-
-- `.env` (gitignored) must provide `MONGODB_URI`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` — read by `src/app/lib/mongodb.ts`, `auth-client.ts`, and better-auth itself. A fresh clone without these fails at runtime.
-
-## Conventions / gotchas
-
-- React Compiler is on (`reactCompiler: true`): components are auto-memoized — do not add `React.memo`/`useMemo`/`useCallback` purely for performance.
-- TypeScript is strict (`strict: true`, `isolatedModules: true`).
-- `src/app/types/studio.ts` declares `IStudio` twice; TS interface merging makes it compile, so both blocks' fields exist. Edit both or consolidate deliberately.
-- Generated files — never edit: `next-env.d.ts`, `tsconfig.tsbuildinfo`, `.next/` (plus `out/`, `build/`); all gitignored.
-- Keep the `nextjs-agent-rules` block at the top intact: `next dev` regenerates it, so deleting it only produces an uncommitted diff.
+Git's toplevel is `C:\Users\TAHSIN` (home directory, zero commits), not this folder — `git status`/`git diff` from here dump the entire home directory. Don't rely on git output to scope changes; verify by file path.

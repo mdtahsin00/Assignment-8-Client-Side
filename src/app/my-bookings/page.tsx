@@ -1,172 +1,49 @@
 "use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { authClient } from "../lib/auth-client";
-import type { Booking } from "../lib/booking";
+import { useState } from "react";
+import { toast } from "sonner";
+import PrivateRoute from "@/components/PrivateRoute";
+import Modal from "@/components/Modal";
+import { SkeletonGrid } from "@/components/Skeleton";
+import { api } from "@/lib/api";
+import { useApi } from "@/lib/use-api";
+import { STATUS_STYLE } from "@/lib/constants";
+import type { Booking } from "@/lib/types";
 
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
-const statusStyles: Record<string, string> = {
-  Pending: "bg-amber-400/15 text-amber-300 border-amber-400/30",
-  Approved: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
-  Rejected: "bg-red-400/15 text-red-300 border-red-400/30",
-};
-
-export default function MyBookingsPage() {
-  const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-  const user = session?.user;
-  const userId = user?.id;
-
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Private route: send visitors to the sign-in page
-  useEffect(() => {
-    if (!isPending && !session?.user) {
-      router.replace("/signIn");
-    }
-  }, [isPending, session?.user, router]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/bookings");
-        const data = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(data?.error ?? "Could not load bookings.");
-        if (!cancelled) setBookings(data.bookings ?? []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load bookings.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  if (isPending || !user) {
-    return (
-      <main className="flex flex-1 items-center justify-center bg-[#0b0b0c] px-5 py-20">
-        <p className="text-sm text-neutral-400">
-          {isPending ? "Loading…" : "Redirecting to sign in…"}
-        </p>
-      </main>
-    );
+function Inner() {
+  const { data, loading, error, reload } = useApi<Booking[]>("/bookings/mine");
+  const [target, setTarget] = useState<Booking | null>(null);
+  async function cancel() {
+    if (!target) return;
+    try { await api(`/bookings/${target._id}`, { method: "PATCH", body: JSON.stringify({ status: "Cancelled" }) }); toast.success("Booking cancelled."); setTarget(null); reload(); }
+    catch (e: any) { toast.error(e.message); }
   }
-
   return (
-    <main className="flex flex-1 bg-[#0b0b0c] px-5 py-14 sm:px-8">
-      <div className="mx-auto w-full max-w-5xl">
-        {/* Heading */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            My Bookings
-          </h1>
-          <p className="mt-3 text-sm text-neutral-400">
-            {user.name} · {user.email}
-          </p>
-        </div>
-
-        {/* Body */}
-        <div className="mt-9">
-          {loading ? (
-            <p className="text-sm text-neutral-400">Loading your bookings…</p>
-          ) : error ? (
-            <p
-              role="alert"
-              className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-400"
-            >
-              {error}
-            </p>
-          ) : bookings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-16 text-center">
-              <h2 className="text-lg font-semibold text-white">
-                No bookings yet
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-neutral-400">
-                Find a studio you love and send a booking request — your
-                requests will show up here.
-              </p>
-              <Link
-                href="/exploreStudios"
-                className="mt-6 inline-block rounded-xl bg-amber-400 px-6 py-3 text-sm font-bold text-black transition hover:bg-amber-300"
-              >
-                Explore Studios →
-              </Link>
+    <div className="wrap py-10">
+      <h1 className="h2 mb-6">My bookings</h1>
+      {loading ? <SkeletonGrid n={3} /> : error ? <p className="text-red-500">{error}</p> : data?.length ? (
+        <div className="space-y-4">{data.map((b) => (
+          <div key={b._id} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={b.studioImage} alt="" className="h-28 w-full rounded-md object-cover sm:w-44" />
+            <div className="flex-1 space-y-1">
+              <Link href={`/studios/${b.studioId}`} className="text-lg font-bold hover:text-accent">{b.studioTitle}</Link>
+              <p className="text-sm text-mute">{b.date}, {b.startTime} to {b.endTime} ({b.hours} hr)</p>
+              <p className="text-sm font-semibold">Total ${b.total} <span className="font-normal text-mute">+ ${b.deposit} deposit</span></p>
             </div>
-          ) : (
-            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {bookings.map((booking) => (
-                <li
-                  key={booking._id}
-                  className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-amber-400/40"
-                >
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <h2 className="text-sm font-bold text-white line-clamp-2">
-                        {booking.studioTitle}
-                      </h2>
-                      <span
-                        className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${
-                          statusStyles[booking.status] ??
-                          "border-white/15 bg-white/[0.05] text-neutral-300"
-                        }`}
-                      >
-                        {booking.status}
-                      </span>
-                    </div>
-
-                    <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded-lg bg-white/[0.04] py-2">
-                        <dt className="text-[10px] text-neutral-500">DATE</dt>
-                        <dd className="text-xs font-bold text-white">
-                          {booking.bookingDate}
-                        </dd>
-                      </div>
-                      <div className="rounded-lg bg-white/[0.04] py-2">
-                        <dt className="text-[10px] text-neutral-500">START</dt>
-                        <dd className="text-xs font-bold text-white">
-                          {booking.startTime}
-                        </dd>
-                      </div>
-                      <div className="rounded-lg bg-white/[0.04] py-2">
-                        <dt className="text-[10px] text-neutral-500">HOURS</dt>
-                        <dd className="text-xs font-bold text-white">
-                          {booking.hours}
-                        </dd>
-                      </div>
-                    </dl>
-
-                    <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-                      <span className="text-[10px] tracking-wider text-neutral-500 uppercase">
-                        Total
-                      </span>
-                      <span className="text-sm font-bold text-amber-300">
-                        {money.format(booking.totalPrice)}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </main>
+            <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+              <span className={`badge ${STATUS_STYLE[b.status]}`}>{b.status}</span>
+              {b.status === "Pending" && <button className="btn btn-ghost !py-1.5" onClick={() => setTarget(b)}>Cancel Booking</button>}
+            </div>
+          </div>))}</div>
+      ) : (
+        <div className="card flex flex-col items-center gap-3 p-12 text-center"><h3 className="text-xl font-bold">No bookings yet</h3><p className="text-mute">Find a space and send your first request.</p><Link href="/studios" className="btn btn-primary">Explore Studios</Link></div>
+      )}
+      <Modal open={!!target} onClose={() => setTarget(null)} title="Cancel this booking?">
+        <p className="mb-5 text-sm text-mute">Your request for {target?.studioTitle} on {target?.date} will be cancelled.</p>
+        <div className="flex justify-end gap-2"><button className="btn btn-ghost" onClick={() => setTarget(null)}>Keep booking</button><button className="btn btn-danger" onClick={cancel}>Cancel booking</button></div>
+      </Modal>
+    </div>
   );
 }
+export default function MyBookings() { return <PrivateRoute><Inner /></PrivateRoute>; }

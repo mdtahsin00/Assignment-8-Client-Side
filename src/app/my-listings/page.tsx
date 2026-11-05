@@ -1,188 +1,45 @@
 "use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { authClient } from "../lib/auth-client";
-import type { Studio } from "../lib/studio";
+import { useState } from "react";
+import { toast } from "sonner";
+import PrivateRoute from "@/components/PrivateRoute";
+import Modal from "@/components/Modal";
+import { SkeletonGrid } from "@/components/Skeleton";
+import { api } from "@/lib/api";
+import { useApi } from "@/lib/use-api";
+import type { Studio } from "@/lib/types";
 
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
-export default function MyListingsPage() {
-  const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-  const user = session?.user;
-  const userId = user?.id;
-
-  const [studios, setStudios] = useState<Studio[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Private route: send visitors to the sign-in page
-  useEffect(() => {
-    if (!isPending && !session?.user) {
-      router.replace("/signIn");
-    }
-  }, [isPending, session?.user, router]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/studios");
-        const data = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(data?.error ?? "Could not load listings.");
-        if (!cancelled) setStudios(data.studios ?? []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load listings.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  if (isPending || !user) {
-    return (
-      <main className="flex flex-1 items-center justify-center bg-[#0b0b0c] px-5 py-20">
-        <p className="text-sm text-neutral-400">
-          {isPending ? "Loading…" : "Redirecting to sign in…"}
-        </p>
-      </main>
-    );
+function Inner() {
+  const { data, loading, error, reload } = useApi<Studio[]>("/studios/mine");
+  const [del, setDel] = useState<Studio | null>(null);
+  async function remove() {
+    if (!del) return;
+    try { await api(`/studios/${del._id}`, { method: "DELETE" }); toast.success("Studio deleted."); setDel(null); reload(); }
+    catch (e: any) { toast.error(e.message); }
   }
-
   return (
-    <main className="flex flex-1 bg-[#0b0b0c] px-5 py-14 sm:px-8">
-      <div className="mx-auto w-full max-w-5xl">
-        {/* Heading */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              My Studio Listings
-            </h1>
-            <p className="mt-3 text-sm text-neutral-400">
-              {user.name} · {user.email}
-            </p>
-          </div>
-          <Link
-            href="/add-studio"
-            className="rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300"
-          >
-            + Add New Studio
-          </Link>
+    <div className="wrap py-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><h1 className="h2">My studio listings</h1><Link href="/add-studio" className="btn btn-primary">Add New Studio</Link></div>
+      {loading ? <SkeletonGrid n={3} /> : error ? <p className="text-red-500">{error}</p> : data?.length ? (
+        <div className="card overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-line text-mute"><tr><th className="p-4">Studio</th><th>Category</th><th>Rate</th><th>Location</th><th className="pr-4 text-right">Actions</th></tr></thead>
+            <tbody>{data.map((s) => (
+              <tr key={s._id} className="border-b border-line last:border-0">
+                <td className="p-4"><div className="flex items-center gap-3">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={s.image} alt="" className="h-12 w-16 rounded-md object-cover" /><b>{s.title}</b></div></td>
+                <td>{s.category}</td><td>${s.hourlyRate}/hr</td><td>{s.location}</td>
+                <td className="pr-4"><div className="flex justify-end gap-2"><Link href={`/studios/edit/${s._id}`} className="btn btn-ghost !px-3 !py-1.5">Update</Link><button onClick={() => setDel(s)} className="btn btn-danger !px-3 !py-1.5">Delete</button></div></td>
+              </tr>))}</tbody>
+          </table>
         </div>
-
-        {/* Body */}
-        <div className="mt-9">
-          {loading ? (
-            <p className="text-sm text-neutral-400">Loading your listings…</p>
-          ) : error ? (
-            <p
-              role="alert"
-              className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-400"
-            >
-              {error}
-            </p>
-          ) : studios.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-16 text-center">
-              <h2 className="text-lg font-semibold text-white">
-                No studios listed yet
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-neutral-400">
-                Publish your first space and start earning hourly bookings from
-                certified creators.
-              </p>
-              <Link
-                href="/add-studio"
-                className="mt-6 inline-block rounded-xl bg-amber-400 px-6 py-3 text-sm font-bold text-black transition hover:bg-amber-300"
-              >
-                Add New Studio →
-              </Link>
-            </div>
-          ) : (
-            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {studios.map((studio) => (
-                <li
-                  key={studio._id}
-                  className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-amber-400/40"
-                >
-                  <div className="relative h-40 bg-white/[0.05]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={studio.imageUrl}
-                      alt={studio.title}
-                      className="h-full w-full object-cover"
-                    />
-                    <span className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-[10px] font-semibold tracking-wider text-amber-300 uppercase backdrop-blur">
-                      {studio.category}
-                    </span>
-                  </div>
-
-                  <div className="p-5">
-                    <h2 className="text-sm font-bold text-white line-clamp-2">
-                      {studio.title}
-                    </h2>
-                    <p className="mt-1 text-xs text-neutral-400 line-clamp-1">
-                      {studio.location}
-                    </p>
-
-                    <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded-lg bg-white/[0.04] py-2">
-                        <dt className="text-[10px] text-neutral-500">RATE/HR</dt>
-                        <dd className="text-xs font-bold text-amber-300">
-                          {money.format(studio.hourlyRate)}
-                        </dd>
-                      </div>
-                      <div className="rounded-lg bg-white/[0.04] py-2">
-                        <dt className="text-[10px] text-neutral-500">DEPOSIT</dt>
-                        <dd className="text-xs font-bold text-white">
-                          {money.format(studio.securityDeposit)}
-                        </dd>
-                      </div>
-                      <div className="rounded-lg bg-white/[0.04] py-2">
-                        <dt className="text-[10px] text-neutral-500">CAPACITY</dt>
-                        <dd className="text-xs font-bold text-white">
-                          {studio.maxCapacity}
-                        </dd>
-                      </div>
-                    </dl>
-
-                    {studio.amenities.length > 0 && (
-                      <ul className="mt-3 flex flex-wrap gap-1.5">
-                        {studio.amenities.slice(0, 4).map((amenity) => (
-                          <li
-                            key={amenity}
-                            className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-neutral-300"
-                          >
-                            {amenity}
-                          </li>
-                        ))}
-                        {studio.amenities.length > 4 && (
-                          <li className="text-[10px] text-neutral-500">
-                            +{studio.amenities.length - 4} more
-                          </li>
-                        )}
-                      </ul>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </main>
+      ) : (
+        <div className="card flex flex-col items-center gap-3 p-12 text-center"><h3 className="text-xl font-bold">You haven&apos;t listed a studio yet</h3><p className="text-mute">Add your first space and start taking bookings.</p><Link href="/add-studio" className="btn btn-primary">Add New Studio</Link></div>
+      )}
+      <Modal open={!!del} onClose={() => setDel(null)} title="Delete this listing?">
+        <p className="mb-5 text-sm text-mute">&ldquo;{del?.title}&rdquo; will be removed permanently. This can&apos;t be undone.</p>
+        <div className="flex justify-end gap-2"><button className="btn btn-ghost" onClick={() => setDel(null)}>Keep it</button><button className="btn btn-danger" onClick={remove}>Delete studio</button></div>
+      </Modal>
+    </div>
   );
 }
+export default function MyListings() { return <PrivateRoute><Inner /></PrivateRoute>; }
