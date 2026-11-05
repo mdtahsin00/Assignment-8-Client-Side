@@ -6,12 +6,12 @@ Next.js 15 (App Router) frontend for a studio-rental marketplace. Not a monorepo
 
 - `npm run dev` — Next dev on http://localhost:3000.
 - `npx tsc --noEmit` — the only verification step. There is no lint, test, or typecheck script, and no ESLint installed. `strict: true`.
-- `npm run build` — **fails until `.env.local` exists** (see below); passes once env is populated.
+- `npm run build` — passes with or without `.env.local` (auth is created lazily, so the build needs no secrets); missing env fails at request time with a clear error instead.
 - `npm run seed` does not exist here despite the README implying it — seeding is `npm run seed` inside `../studiospace-server`.
 
 ## Setup gotcha
 
-`.env.local` is gitignored and absent on a fresh clone: copy `.env.example` → `.env.local` first. Without it `npm run build` crashes while collecting page data for `/api/token`, because `src/lib/auth.ts` constructs the `MongoClient` at module load and JWT signing needs `JWT_SECRET`. The same env is required at runtime for all auth/API routes.
+`.env.local` is gitignored and absent on a fresh clone: copy `.env.example` → `.env.local` first. It is not needed for `npm run build` — `src/lib/auth.ts` exports `getAuth()`, which builds the Better Auth + Mongo client on first request, so builds never require runtime secrets. Every auth/API request does need the env, and `getAuth()` throws a message naming the missing variable. Never re-introduce module-level `new MongoClient(process.env.MONGODB_URI as string)` or `export const auth = betterAuth(...)`: that is what used to crash Vercel builds when its env was unset.
 
 - `JWT_SECRET` must be byte-identical to the server's, or every API call returns 401.
 - `DB_NAME=StudioSpace` — case-sensitive and **must match the existing DB on the Atlas cluster**. The lowercase value in older configs (`studiospace`) is rejected with Mongo error 13297 (`db already exists with different case`), which surfaces only at first signup as Better Auth `FAILED_TO_CREATE_USER` (HTTP 422) — pages load fine, so it's easy to misdiagnose as a form bug.
